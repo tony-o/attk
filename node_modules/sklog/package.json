@@ -1,0 +1,13 @@
+{
+   "name":"sklog"
+   ,"version":"v0.1.0-1"
+   ,"homepage":"http://skod.it/"
+   ,"main":"sklog"
+   ,"repository":{
+      "type":"git"
+      ,"url":"git@github.com:tony-o/sklog.git"
+   }
+   ,"dependencies":{"cli-color":""}
+   ,"description":"A super lightweight console logging library to help make things simple.  This is very lightweight, it's meant only to make loggin easy - nothing more and nothing less."
+   ,"keywords":["logger","logging","log","console.log","console"]
+}
