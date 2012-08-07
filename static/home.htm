@@ -2,13 +2,16 @@
 <html>
 	<head>
 		<script src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+		<script src="/b64.js"></script>
 		<script src="/socket.io/socket.io.js"></script>
 		<script>
-		  var socket = io.connect('http://10.0.0.155:4001');
-		  socket.on('init',function(data){
-		    console.log(data);
+		  var socket = io.connect('http://localhost:4001/');
+		  socket.emit("checkcreds",{"auth":base64.encode("tonyod@paccoast.com")});
+		  socket.on("loggedin",function(){
+		  	console.log("getopentasks");
+		  	socket.emit("getopentasks",{});
 		  });
-		  socket.emit("checkcreds",{});
+		  socket.on("loginfailed",function(){console.log("Login failed");});
 		</script>
 	</head>
 	<body>

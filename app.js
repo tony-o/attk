@@ -25,6 +25,21 @@ io.sockets.on("connection",function(sock){
 	sock._attkdata = {};
 
 	sock.on("checkcreds",function(data){
-		log(autotask.getEntityInfo.resource("tonyod@paccoast.com"));
+		autotask.getEntityInfo.resource(data.auth,function(uid){
+			if(uid.uid>-1){
+				sock.emit("loggedin");
+				sock._attkdata.user = data.auth;
+				sock._attkdata.uid = uid.uid;
+			}else{
+				sock.emit("loginfailed");
+			}
+		});
+	});
+
+	sock.on("getopentasks",function(data){
+		log("Opening tasks for : " + sock._attkdata.user);
+		autotask.getEntityInfo.tasks({resource:sock._attkdata.uid},function(d){
+			log(d);
+		});
 	});
 });
