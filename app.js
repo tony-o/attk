@@ -2,6 +2,7 @@ var fs = require("fs");
 var http = require("http");
 var log = require("sklog");
 var express = require("express");
+var b64 = require("./static/b64.js");
 var autotask = require("./autotask")("https://webservices5.autotask.net/ATServices/1.5/atws.asmx");
 
 var app = express();
@@ -28,7 +29,7 @@ io.sockets.on("connection",function(sock){
 		autotask.getEntityInfo.resource(data.auth,function(uid){
 			if(uid.uid>-1){
 				sock.emit("loggedin");
-				sock._attkdata.user = data.auth;
+				sock._attkdata.user = b64.decode(data.auth);
 				sock._attkdata.uid = uid.uid;
 			}else{
 				sock.emit("loginfailed");
@@ -37,9 +38,8 @@ io.sockets.on("connection",function(sock){
 	});
 
 	sock.on("getopentasks",function(data){
-		log("Opening tasks for : " + sock._attkdata.user);
 		autotask.getEntityInfo.tasks({resource:sock._attkdata.uid},function(d){
-			log(d);
+			sock.emit("retopentasks",d);
 		});
 	});
 });

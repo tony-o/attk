@@ -2,19 +2,169 @@
 <html>
 	<head>
 		<script src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+		<script src="http://code.jquery.com/mobile/1.2.0-alpha.1/jquery.mobile-1.2.0-alpha.1.min.js"></script>
 		<script src="/b64.js"></script>
 		<script src="/socket.io/socket.io.js"></script>
 		<script>
 		  var socket = io.connect('http://localhost:4001/');
+		  var projects = [];
+		  var timers = [];
+		  var localtime = [];
 		  socket.emit("checkcreds",{"auth":base64.encode("tonyod@paccoast.com")});
 		  socket.on("loggedin",function(){
-		  	console.log("getopentasks");
 		  	socket.emit("getopentasks",{});
 		  });
 		  socket.on("loginfailed",function(){console.log("Login failed");});
+
+		  socket.on("retopentasks",function(d){
+		  	projects=d;
+		  	$("#select-choice-taskE option").remove();
+		  	$("#select-choice-taskS option").remove();		  	
+		  	for(var i in projects){
+		  		console.log(projects[i]);
+		  		$("#select-choice-taskE").append("<option value=\"" + projects[i].id + "\">" + projects[i].title + "</option>");
+		  		$("#select-choice-taskS").append("<option value=\"" + projects[i].id + "\">" + projects[i].title + "</option>");
+		  	}
+		  });
+		  var myc = function(){
+		  	var dt = new Date();
+		  	var cm = parseInt($("#select-choice-month").val());
+		  	var cd = $("#select-choice-day").val();
+		  	dt.setMonth(cm);
+		  	dt.setYear(parseInt($("#select-choice-year").val()));
+		  	dt.setDate(1);
+		  	$("#select-choice-day option").remove();
+		  	$("#select-choice-day").append("<option>Day</option>");
+		  	while(cm == dt.getMonth()){
+		  		$("#select-choice-day").append("<option value=\"" + dt.getDate() + "\">" + dt.getDate() + "</option>");
+		  		dt.setDate(dt.getDate()+1);
+		  	}
+		  	$("#select-choice-day").val(cd).selectmenu("refresh",true);
+		  };
+		  $("#select-choice-month").live("change",myc);
+		  $("#select-choice-year").live("change",myc);		  
+		  $("[data-role=page]").live("pagebeforeshow",function(e,u){
+		  	var dt = new Date();
+		  	dt.setYear(dt.getFullYear()-1);
+		  	for(var i=0;i<3;i++){
+		  		$("#select-choice-year").append("<option value=\"" + dt.getFullYear() + "\">" + dt.getFullYear() + "</option>");
+		  		dt.setYear(dt.getFullYear()+1);
+		  	}
+		  	dt.setYear(dt.getFullYear()-2);
+		  	$("#select-choice-year").val(dt.getFullYear()).selectmenu("refresh",true);
+		  	$("#select-choice-month").val(((dt.getMonth()+"").length < 2 ? "0" : "") + dt.getMonth()).selectmenu("refresh",true);
+		  	$("#select-choice-month").change();
+		  	$("#select-choice-day").val(dt.getDate()).selectmenu("refresh",true);
+		  });
+		  $("#starttimersubmit").live("click",function(){
+		  	var task = $("#select-choice-taskS").val();
+		  	var start = new Date();
+		  	localtime.push({task:task,start:start});
+		  });
+
 		</script>
+		<link rel="stylesheet" href="http://code.jquery.com/mobile/1.2.0-alpha.1/jquery.mobile-1.2.0-alpha.1.min.css" />
+		<style>
+			.template{display:none;}
+		</style>
 	</head>
 	<body>
+		<div data-role="page" class="type-interior" id="main">
+			<div data-role="header" data-theme="b">
+				<h1>
+					<fieldset data-role="controlgroup" data-type="horizontal">
+						<label for="select-choice-month">Month</label>
+						<select name="select-choice-month" id="select-choice-month">
+							<option>Month</option>
+							<option value="00">January</option>
+							<option value="01">February</option>
+							<option value="02">March</option>
+							<option value="03">April</option>
+							<option value="04">May</option>
+							<option value="05">June</option>
+							<option value="06">July</option>
+							<option value="07">August</option>
+							<option value="08">September</option>
+							<option value="09">October</option>
+							<option value="10">November</option>
+							<option value="11">December</option>							
+						</select>
+						<label for="select-choice-day">Day</label>
+						<select name="select-choice-day" id="select-choice-day">
+							<option>Day</option>
+						</select>
+						<label for="select-choice-year">Year</label>
+						<select name="select-choice-year" id="select-choice-year">
+							<option>Year</option>
+						</select>
+					</fieldset>
+				</h1>
+			</div>
+			<div data-role="content">
+				<div class="content-primary">
+					<ul data-role="listview" data-split-icon="gear" data-split-theme="d" id="#timeentries">
+						<li class="template">
+							<a href="#entertime" data-rel="dialog" data-position-to="window" data-transition="fade" class=".filledit">
+								<img src="/things.png" />
+								<h3>Broken Bells</h3>
+								<p>Broken Bells</p>
+							</a>
+							<a href="#starttimer" data-rel="dialog" data-position-to="window" data-transition="fade" class=".filledit">
+								Purchase album
+							</a>
+						</li>
+						<li>
+							<a href="#entertime" data-rel="dialog" data-position-to="window" data-transition="fade">
+								<img src="/things.png" />
+								<h3>New Entry</h3>
+								<p>Add Time Popup</p>
+							</a>
+							<a href="#starttimer" data-rel="dialog" data-position-to="window" data-transition="fade">
+								
+							</a>
+						</li>						
+					</ul>
+				</div>
+			</div>
+		</div>
+		<div data-role="page" id="entertime" data-theme="a">
+			<div data-role="content">
+				<div class="content-primary">
+					<h3>Enter Time:</h3>
+					<fieldset data-role="controlgroup">
+						<div data-role="fieldcontain">
+							<label for="select-choice-task" class="select"></label>
+							<select name="select-choice-task" id="select-choice-taskE"><option>Task</option></select>
+						</div>
+						<div data-role="fieldcontain">
+							<label for="input-hours"># of Hours:</label>
+							<input name="input-hours" id="input-hours" />
+						</div>
+					</fieldset>
+					<fieldset>
+						<a href="#" data-role="button" data-theme="b" data-rel="back" id="entertimesubmit">Submit</a>						
+						<a href="#" data-role="button" data-theme="a" data-rel="back">Cancel</a>					
+					</fieldset>						
+				</div>
+			</div>			
+		</div>
+		<div data-role="page" id="starttimer" data-theme="a">
+			<div data-role="content">
+				<div class="content-primary">
+					<h3>Enter Time:</h3>
+					<fieldset data-role="controlgroup">
+						<div data-role="fieldcontain">
+							<label for="select-choice-task" class="select">Task</label>
+							<select name="select-choice-task" id="select-choice-taskS"><option>Task</option></select>
+						</div>
+					</fieldset>
+					<fieldset>
+						<a href="#" data-role="button" data-theme="b" data-rel="back" id="starttimersubmit">Submit</a>						
+						<a href="#" data-role="button" data-theme="a" data-rel="back">Cancel</a>					
+					</fieldset>						
+				</div>
+			</div>			
+		</div>
 
 	</body>
 </html>

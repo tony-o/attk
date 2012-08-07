@@ -95,9 +95,7 @@ atask.prototype.getEntityInfo.tasks = function(d,callback){
 	s.query.field = fields;
 	self.soap(s,function(e,r,b){
 		var rrr = soap.parse(b.toString());
-		log("RESPONSE");
-		log(rrr);
-		callback({uid:-1});
+		callback(rrr);
 	});
 };
 
@@ -105,7 +103,6 @@ atask.prototype.soap = function(data,callback){
 	if(typeof data == "object"){
 		data = soap.generate(data);
 	}
-	log(data);
 	request({
 		"url":self.url
 		,"method":"POST"
