@@ -71,7 +71,7 @@ atask.prototype.getEntityInfo.resource = function(rname,callback){
 	s.query.field.expressions.val = rname;
 	self.soap(s,function(e,r,b){
 		var rrr = soap.parse(b.toString());
-		for(var i in rrr){
+		for(var i in rrr){//kQHBhY2NvYXN0LmNvbToxMjM0NQ==
 			if(rrr[i].email == rname || rname.indexOf(rrr[i].username + "@") == 0){
 				log(rname + " logged in (" + rrr[i].id + ")");
 				callback({uid:rrr[i].id});
@@ -110,7 +110,7 @@ atask.prototype.soap = function(data,callback){
 		,"encoding":null
 		,"headers":{
 			"Content-Type":"text/xml; charset=\"utf-8\""
-			,"Authorization":"Basic dG9ueW9kQHBhY2NvYXN0LmNvbToxMjM0NQ=="
+			,"Authorization":"Basic dG9ueW9"
 		}
 	},callback);
 }
