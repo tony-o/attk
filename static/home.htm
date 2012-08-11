@@ -2,14 +2,35 @@
 <html>
 	<head>
 		<script src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+		<script>
+		  $(document).bind('mobileinit',function(){
+		  	//$.mobile.selectmenu.prototype.options.nativeMenu = false;
+		  });
+		</script>
 		<script src="http://code.jquery.com/mobile/1.2.0-alpha.1/jquery.mobile-1.2.0-alpha.1.min.js"></script>
+		<script src="/dt.js"></script>
 		<script src="/b64.js"></script>
 		<script src="/socket.io/socket.io.js"></script>
 		<script>
 		  var socket = io.connect('http://localhost:4001/');
 		  var projects = [];
 		  var timers = [];
-		  var localtime = [];
+      var tcounter = 0;
+		  try{
+		  	timers = JSON.parse(localStorage.timers);
+		  	if(!(timers instanceof Array)){
+		  		timers = [];
+		  	}
+      }catch(e){}finally{
+		  	for(var i in timers){
+          if(timers[i].start != null){
+            timers[i].start = new Date(timers[i].start);
+          }
+          timers[i].hours = (isNaN(parseFloat(timers[i].hours))?0:parseFloat(timers[i].hours));
+          timers[i].id = tcounter++;
+        }
+		  }
+      tcounter = timers.length;
 		  socket.emit("checkcreds",{"auth":base64.encode("tonyod@paccoast.com")});
 		  socket.on("loggedin",function(){
 		  	socket.emit("getopentasks",{});
@@ -17,14 +38,26 @@
 		  socket.on("loginfailed",function(){console.log("Login failed");});
 
 		  socket.on("retopentasks",function(d){
-		  	projects=d;
-		  	$("#select-choice-taskE option").remove();
-		  	$("#select-choice-taskS option").remove();		  	
-		  	for(var i in projects){
-		  		console.log(projects[i]);
-		  		$("#select-choice-taskE").append("<option value=\"" + projects[i].id + "\">" + projects[i].title + "</option>");
-		  		$("#select-choice-taskS").append("<option value=\"" + projects[i].id + "\">" + projects[i].title + "</option>");
+		  	var tt = function(){
+			  	projects=d;
+			  	$("#select-choice-taskE option").remove();
+			  	$("#select-choice-taskS option").remove();		  	
+			  	$("#select-choice-taskS2 option").remove();		  	
+			  	for(var i in projects){
+			  		$("#select-choice-taskE").append("<option value=\"" + projects[i].id + "\">" + projects[i].title + "</option>");
+			  		$("#select-choice-taskS").append("<option value=\"" + projects[i].id + "\">" + projects[i].title + "</option>");
+			  		$("#select-choice-taskS2").append("<option value=\"" + projects[i].id + "\">" + projects[i].title + "</option>");
+			  	}
+			  	updatetimes();
+		  	};
+		  	var jj = function(){
+		  		if($("#select-choice-taskE").length && $("#select-choice-taskS").length){
+		  			tt();
+		  		}else{
+		  			setTimeout(jj,100);
+		  		}
 		  	}
+		  	setTimeout(jj,100);
 		  });
 		  var myc = function(){
 		  	var dt = new Date();
@@ -43,29 +76,175 @@
 		  };
 		  $("#select-choice-month").live("change",myc);
 		  $("#select-choice-year").live("change",myc);		  
-		  $("[data-role=page]").live("pagebeforeshow",function(e,u){
-		  	var dt = new Date();
-		  	dt.setYear(dt.getFullYear()-1);
-		  	for(var i=0;i<3;i++){
-		  		$("#select-choice-year").append("<option value=\"" + dt.getFullYear() + "\">" + dt.getFullYear() + "</option>");
-		  		dt.setYear(dt.getFullYear()+1);
-		  	}
-		  	dt.setYear(dt.getFullYear()-2);
-		  	$("#select-choice-year").val(dt.getFullYear()).selectmenu("refresh",true);
-		  	$("#select-choice-month").val(((dt.getMonth()+"").length < 2 ? "0" : "") + dt.getMonth()).selectmenu("refresh",true);
-		  	$("#select-choice-month").change();
-		  	$("#select-choice-day").val(dt.getDate()).selectmenu("refresh",true);
-		  });
-		  $("#starttimersubmit").live("click",function(){
-		  	var task = $("#select-choice-taskS").val();
-		  	var start = new Date();
-		  	localtime.push({task:task,start:start});
+		  $("#main[data-role=page]").live("pagebeforeshow",function(e,u){
+		  	if(isNaN($("#select-choice-day").val())){
+			  	var dt = new Date();
+			  	dt.setYear(dt.getFullYear()-1);
+			  	$("#select-choice-year option").remove();
+			  	$("#select-choice-year").append("<option>Year</option>");		  	
+			  	for(var i=0;i<3;i++){
+			  		$("#select-choice-year").append("<option value=\"" + dt.getFullYear() + "\">" + dt.getFullYear() + "</option>");
+			  		dt.setYear(dt.getFullYear()+1);
+			  	}
+			  	dt.setYear(dt.getFullYear()-2);
+			  	$("#select-choice-year").val(dt.getFullYear()).selectmenu("refresh",true);
+			  	$("#select-choice-month").val(((dt.getMonth()+"").length < 2 ? "0" : "") + dt.getMonth()).selectmenu("refresh",true);
+			  	$("#select-choice-month").change();
+			  	$("#select-choice-day").val(dt.getDate()).selectmenu("refresh",true);
+        }
+  			$("#timeentries li:gt(1)").remove();
+  			var t = $("#timeentries li.template");
+  			var c,dd,de;
+  			for(var i in timers){
+  				i = timers[i];
+  				c = $(t).clone();
+          dd = Math.round(((isNaN(parseFloat(i.hours))?0:parseFloat(i.hours)) + (i.start == null ? 0 : ((new Date() - new Date(i.start)) / 3600000))) * 1000) / 1000;
+          if(i.start != null){
+  				  $(c).find("h3").text("Timer: " + i.task);
+            de = "Running: ";
+          }else{
+            $(c).find("h3").text("Logged: " + i.task);
+            de = "Clocked: ";
+          }
+          $(c).find("a p").text(de + (dd<10?"0":"") + Math.floor(dd) + ":" + (Math.round((dd % 1) * 60)<10?"0":"") + Math.round((dd % 1) * 60));
+  				$(c).removeClass("template");
+  				$(c).attr("taskid",i.id);
+  				(function(i,dd){
+  					$(c).find("a").click(function(){
+  					  	$("#select-choice-taskS2").val(i.taskid);
+                $("#stoptimer").attr("taskid",i.id);
+                $("#restarttimer").attr("taskid",i.id);
+                $("#savetimer").attr("taskid",i.id);
+                $("#deletetimer").attr("taskid",i.id);
+  					  	$("#input-edit-hours").val(dd);
+                $("#input-edit-timenotes").val(i.notes);
+                if(i.start == null){
+                  $("#stoptimer").css("display","none");
+                  $("#restarttimer").css("display","");                  
+                }else{
+                  $("#stoptimer").css("display","");
+                  $("#restarttimer").css("display","none");                                    
+                }
+  					});					
+  				})(i,dd);
+  				$("#timeentries").append(c);
+  			}
+  			updatetimes();
 		  });
 
+
+		  $("#starttimersubmit").live("click",function(){
+		  	var task = $("#select-choice-taskS option:selected").text();
+		  	var taskid = $("#select-choice-taskS").val();
+        var notes = $("#input-start-timenotes").val();
+		  	var start = new Date();		  
+        var day = new Date($("#select-choice-year").val() + "/" + $("#select-choice-month").val() + "/" + $("#select-choice-day").val());
+		  	timers.push({task:task,start:start,taskid:taskid,id:tcounter++,notes:notes,day:day});
+		  	localStorage.timers = JSON.stringify(timers);
+		  });
+
+      $("#deletetimer").live("click",function(){
+        var id = $(this).attr("taskid");
+        for(var kk in timers){
+          if(timers[kk].id == id){
+            timers.splice(kk,1);
+            localStorage.timers = JSON.stringify(timers);
+            return;
+          }
+        }
+      });
+
+      $("#stoptimer").live("click",function(){
+        for(var kk in timers){
+          if(timers[kk].id == $(this).attr("taskid")){
+            timers[kk].hours = ((new Date()) - new Date(timers[kk].start)) / 3600000;
+            timers[kk].start = null;
+            localStorage.timers = JSON.stringify(timers);
+            return;
+          }
+        }
+      });
+
+      $("#savetimer").live("click",function(){
+        for(var kk in timers){
+          if(timers[kk].id == $(this).attr("taskid")){
+            if(timers[kk].start != null){
+              //timer is running
+              timers[kk].start = new Date((new Date()) - (parseFloat($("#input-edit-hours").val())*3600000));
+              timers[kk].hours = 0;
+            }else{
+              //timer is not running
+              timers[kk].hours = $("#input-edit-hours").val();
+            }
+            timers[kk].taskid = $("#select-choice-taskS2").val();
+            timers[kk].task = $("#select-choice-taskS2 option:selected").text();
+            timers[kk].notes = $("#input-edit-timenotes").val();
+            localStorage.timers = JSON.stringify(timers);            
+            return;
+          }
+        }
+      });
+
+      $("#restarttimer").live("click",function(){
+        for(var kk in timers){
+          if(timers[kk].id == $(this).attr("taskid")){
+            timers[kk].start = new Date((new Date()) - (parseFloat(timers[kk].hours)*3600000));
+            timers[kk].hours = 0;
+            localStorage.timers = JSON.stringify(timers);            
+            return;
+          }
+        }        
+      });
+
+      $("#entertimelnk").live("click",function(){
+        $("#select-choice-taskE").val("Task");
+        $("#input-timenotes").val("");
+        $("#input-hours").val(0); 
+      });
+
+      $("#entertimesubmit").live("click",function(){
+        var task = $("#select-choice-taskE option:selected").text();
+        var taskid = $("#select-choice-taskE").val();
+        var notes = $("#input-timenotes").val();
+        var hours = $("#input-hours").val();   
+        var day = new Date($("#select-choice-year").val() + "/" + $("#select-choice-month").val() + "/" + $("#select-choice-day").val());
+        timers.push({task:task,start:null,hours:hours,taskid:taskid,id:tcounter++,notes:notes,day:day});
+        localStorage.timers = JSON.stringify(timers);            
+      });
+
+		  var updatetimes = function(){
+		  	var hr,mn;
+		  	$("#timeentries li:gt(1)").each(function(){
+		  		if($(this).find("h3").text().toString().indexOf("Timer: ") == 0){
+		  			//is a timer, update time
+		  			var dt = new Date();
+		  			var cc = $(this).attr("taskid");
+  					for(var l in timers){
+  						if(timers[l].id == cc){
+  							dt = (!isNaN(parseFloat(timers[l].hours))?parseFloat(timers[l].hours):0) + ((dt - timers[l].start) / 3600000);
+  							cc = -1;
+  							break;
+		  				}
+		  				if(cc == -1){break;}
+		  			}
+		  			if(cc == -1){
+		  				hr = Math.floor(dt);
+		  				mn = Math.round((dt % 1)*60);
+		  				$(this).find("a p").text("Running: " + (hr<10?"0":"") + hr + ":" + (mn<10?"0":"") + mn);
+		  			}
+		  		}
+		  	});
+		  };
+		  setInterval(updatetimes,60000);
+		  updatetimes();
 		</script>
 		<link rel="stylesheet" href="http://code.jquery.com/mobile/1.2.0-alpha.1/jquery.mobile-1.2.0-alpha.1.min.css" />
 		<style>
 			.template{display:none;}
+      .fullwidth{
+          width:100% !important;
+          padding:0.4em 0!important; 
+      }
 		</style>
 	</head>
 	<body>
@@ -102,26 +281,22 @@
 			</div>
 			<div data-role="content">
 				<div class="content-primary">
-					<ul data-role="listview" data-split-icon="gear" data-split-theme="d" id="#timeentries">
+					<ul data-role="listview" data-split-icon="gear" data-split-theme="d" id="timeentries">
 						<li class="template">
-							<a href="#entertime" data-rel="dialog" data-position-to="window" data-transition="fade" class=".filledit">
+							<a href="#edittimer" data-rel="dialog" data-position-to="window" data-transition="fade" class=".filledit">
 								<img src="/things.png" />
 								<h3>Broken Bells</h3>
 								<p>Broken Bells</p>
 							</a>
-							<a href="#starttimer" data-rel="dialog" data-position-to="window" data-transition="fade" class=".filledit">
-								Purchase album
-							</a>
+							<!--<a href="#starttimer" data-rel="dialog" data-position-to="window" data-transition="fade" class=".filledit">#</a>!-->
 						</li>
 						<li>
-							<a href="#entertime" data-rel="dialog" data-position-to="window" data-transition="fade">
+							<a href="#entertime" data-rel="dialog" data-position-to="window" data-transition="fade" id="entertimelnk">
 								<img src="/things.png" />
 								<h3>New Entry</h3>
 								<p>Add Time Popup</p>
 							</a>
-							<a href="#starttimer" data-rel="dialog" data-position-to="window" data-transition="fade">
-								
-							</a>
+							<a href="#starttimer" data-rel="dialog" data-position-to="window" data-transition="fade">@</a>
 						</li>						
 					</ul>
 				</div>
@@ -133,13 +308,17 @@
 					<h3>Enter Time:</h3>
 					<fieldset data-role="controlgroup">
 						<div data-role="fieldcontain">
-							<label for="select-choice-task" class="select"></label>
-							<select name="select-choice-task" id="select-choice-taskE"><option>Task</option></select>
+							<!--<label for="select-choice-taskE" class="select"></label>!-->
+							<select name="select-choice-taskE" class="fullwidth" id="select-choice-taskE"><option>Task</option></select>
 						</div>
 						<div data-role="fieldcontain">
-							<label for="input-hours"># of Hours:</label>
+							<label for="input-hours">Hours</label>
 							<input name="input-hours" id="input-hours" />
 						</div>
+            <div data-role="fieldcontain">
+              <!--<label for="input-timenotes">Textarea:</label>!-->
+              <textarea cols="40" rows="8" name="input-timenotes" class="fullwidth" id="input-timenotes"></textarea>
+            </div>
 					</fieldset>
 					<fieldset>
 						<a href="#" data-role="button" data-theme="b" data-rel="back" id="entertimesubmit">Submit</a>						
@@ -151,16 +330,48 @@
 		<div data-role="page" id="starttimer" data-theme="a">
 			<div data-role="content">
 				<div class="content-primary">
-					<h3>Enter Time:</h3>
+					<h3>Start Timer:</h3>
 					<fieldset data-role="controlgroup">
 						<div data-role="fieldcontain">
-							<label for="select-choice-task" class="select">Task</label>
-							<select name="select-choice-task" id="select-choice-taskS"><option>Task</option></select>
+							<!--<label for="select-choice-task" class="select">Task</label>!-->
+							<select name="select-choice-task" class="fullwidth" id="select-choice-taskS"><option>Task</option></select>
 						</div>
+            <div data-role="fieldcontain">
+              <!--<label for="input-timenotes">Textarea:</label>!-->
+              <textarea cols="40" rows="8" name="input-start-timenotes" class="fullwidth" id="input-start-timenotes"></textarea>
+            </div>
 					</fieldset>
 					<fieldset>
 						<a href="#" data-role="button" data-theme="b" data-rel="back" id="starttimersubmit">Submit</a>						
-						<a href="#" data-role="button" data-theme="a" data-rel="back">Cancel</a>					
+						<a href="#" data-role="button" data-theme="a" data-rel="back">Cancel</a>
+					</fieldset>						
+				</div>
+			</div>			
+		</div>
+		<div data-role="page" id="edittimer" data-theme="a">
+			<div data-role="content">
+				<div class="content-primary">
+					<h3>Edit Timer:</h3>
+					<fieldset data-role="controlgroup">
+						<div data-role="fieldcontain">
+							<!--<label for="select-choice-taskS2" class="select">Task</label>!-->
+							<select name="select-choice-taskS2" class="fullwidth" id="select-choice-taskS2"><option>Task</option></select>
+						</div>
+						<div data-role="fieldcontain">
+							<label for="input-edit-hours">Hours</label>
+							<input name="input-edit-hours" id="input-edit-hours" />
+						</div>
+            <div data-role="fieldcontain">
+              <!--<label for="input-timenotes">Textarea:</label>!-->
+              <textarea cols="40" rows="8" name="input-edit-timenotes" class="fullwidth" id="input-edit-timenotes"></textarea>
+            </div>
+					</fieldset>
+					<fieldset>
+            <a href="#" data-role="button" data-theme="b" data-rel="back" id="restarttimer">Restart Timer</a>
+						<a href="#" data-role="button" data-theme="b" data-rel="back" id="stoptimer">Stop Timer</a>
+						<a href="#" data-role="button" data-theme="c" data-rel="back" id="savetimer">Save</a>						
+            <a href="#" data-role="button" data-theme="e" data-rel="back" id="deletetimer">Delete</a>            
+						<a href="#" data-role="button" data-theme="a" data-rel="back">Cancel</a>
 					</fieldset>						
 				</div>
 			</div>			
