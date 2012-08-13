@@ -49,6 +49,7 @@
 			  		$("#select-choice-taskS2").append("<option value=\"" + projects[i].id + "\">" + projects[i].title + "</option>");
 			  	}
 			  	updatetimes();
+          $("#main .loader").css("display","none");
 		  	};
 		  	var jj = function(){
 		  		if($("#select-choice-taskE").length && $("#select-choice-taskS").length){
@@ -120,10 +121,12 @@
                 $("#input-edit-timenotes").val(i.notes);
                 if(i.start == null){
                   $("#stoptimer").css("display","none");
-                  $("#restarttimer").css("display","");                  
+                  $("#restarttimer").css("display","");
+                  $(c).find("img").attr("src","/clock.png");
                 }else{
                   $("#stoptimer").css("display","");
                   $("#restarttimer").css("display","none");                                    
+                  $(c).find("img").attr("src","/things.png");
                 }
   					});					
   				})(i,dd);
@@ -216,6 +219,7 @@
 		  	var hr,mn;
 		  	$("#timeentries li:gt(1)").each(function(){
 		  		if($(this).find("h3").text().toString().indexOf("Timer: ") == 0){
+            $(this).find("img").attr("src","/clock.png");
 		  			//is a timer, update time
 		  			var dt = new Date();
 		  			var cc = $(this).attr("taskid");
@@ -244,6 +248,19 @@
       .fullwidth{
           width:100% !important;
           padding:0.4em 0!important; 
+      }
+      .loader{
+        position:absolute;
+        top:0;
+        bottom:0;
+        left:0;
+        right:0;
+        width:100%;
+        height:100%;
+        background:#FFF;
+        z-index:5000;
+        text-align:center;
+        line-height:100%;
       }
 		</style>
 	</head>
@@ -292,7 +309,7 @@
 						</li>
 						<li>
 							<a href="#entertime" data-rel="dialog" data-position-to="window" data-transition="fade" id="entertimelnk">
-								<img src="/things.png" />
+								<img src="/plus.png" />
 								<h3>New Entry</h3>
 								<p>Add Time Popup</p>
 							</a>
@@ -301,6 +318,8 @@
 					</ul>
 				</div>
 			</div>
+      <div class="loader"><img src="/loading.gif" /></div>
+
 		</div>
 		<div data-role="page" id="entertime" data-theme="a">
 			<div data-role="content">
